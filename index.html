@@ -1,0 +1,265 @@
+<html>
+    <head>
+        <title>ET Scheduler</title>
+        <script src="https://kit.fontawesome.com/fff52c779c.js" crossorigin="anonymous"></script>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+        <script type="text/javascript" src="https://unpkg.com/vue-simple-suggest"></script>
+        <link rel="stylesheet" href="https://unpkg.com/vue-simple-suggest/dist/styles.css">
+
+    </head>
+    <body>
+        <div id="app" class="container">
+            <div class="time-area box">
+                <div class="mini-rt-area">
+                    <span id="RealtimeClockArea"></span>
+                </div>
+                <div class="clock-area">
+                    <span id="ETClockArea"></span>
+                </div>
+                <div class="">
+                    <div class="field has-addons">
+                        <div class="control">
+                          <vue-simple-suggest
+                            v-model="selected"
+                            :list="simpleSuggestionList"
+                            :filter-by-query="true">
+                            </vue-simple-suggest>
+                        </div>
+                        <div class="control">
+                          <button class="button is-info" @click="addItem()">
+                            追加
+                          </button>
+                        </div>
+                      </div>
+                </div>
+            </div>
+            <div class="gantt-area box">
+                <table id="listTable" rules="all">
+                    <thead>
+                        <th>name</th>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(item,index) in myItem" :key="index">
+                            <td>{{ item.name }}</td>
+                            <td><img :src="item.imageUrl" style="width:30px;height:auto;"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table id="chartTable" class="listchart-table" rules="all">
+                    <tbody>
+                        <tr id = "hourArea" colspan="24"></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div style="position:absolute;bottom:0;">(C) SQUARE ENIX CO., LTD. All Rights Reserved.</div>
+    </body>
+    <script>
+        var app = new Vue({
+            el:"#app",
+            data:{
+                selected:'',
+                simpleSuggestionList:[
+                    "金鉱",
+                    "スプルース原木",
+                    "ヤンサ沃土"
+                ],
+                itemInfoList:{
+                    "金鉱":{
+                        "id":"dd538e4d915",
+                        "imageUrl":"https://app.eriones.com/img/icon/ls_nq/dd538e4d915.png",
+                        "etBegin":9,
+                        "time":2
+                    },
+                    "スプルース原木":{
+                        "id":"abd30227264",
+                        "imageUrl":"https://app.eriones.com/img/icon/ls_nq/abd30227264.png",
+                        "etBegin":9,
+                        "time":2
+                    },
+                    "ヤンサ沃土":{
+                        "id":"fc34ed6cfb5",
+                        "imageUrl":"https://app.eriones.com/img/icon/ls_nq/fc34ed6cfb5.png",
+                        "etBegin":20,
+                        "time":2
+                    }
+                },
+                myItem:[]
+            },
+            methods:{
+                addItem(){
+                    // table要素内のDOM動的追加はメソッドを使う
+                    var tableElem = document.getElementById('chartTable')
+                    // 末尾に追加
+                    var row = tableElem.insertRow(-1)
+
+                    result = this.itemInfoList[this.selected]
+                    var nowHour = ETClock().hour
+
+                    for (var i = nowHour; i < 24; i++) {
+                        var cellElemToday = row.insertCell(-1)
+
+                        if (i >= result["etBegin"] && i <= result["etBegin"] + result["time"]) {
+                            cellElemToday.innerHTML = 'i'
+                        }
+
+                        if (i == 23) {
+                            for (var j = 0; j < nowHour; j++) {
+                                var cellElemTomorrow = row.insertCell(-1)
+                                if (j >= result["etBegin"] && j <= result["etBegin"] + result["time"]) {
+                                    cellElemTomorrow.innerHTML = 'j'
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    this.myItem.push({
+                        "name":this.selected,
+                        "imageUrl":result.imageUrl
+                    })
+                }
+            }
+        })
+
+
+        function set2fig(num) {
+            // 桁数が1桁だったら先頭に0を加えて2桁に調整する
+            var ret;
+            if( num < 10 ) { ret = "0" + num; }
+            else { ret = num; }
+            return ret;
+        }
+        function showClock() {
+            // 現在時刻を#RealtimeClockArea表示する
+            var nowTime = new Date();
+            var nowHour = set2fig( nowTime.getHours() );
+            var nowMin  = set2fig( nowTime.getMinutes() );
+            var nowSec  = set2fig( nowTime.getSeconds() );
+            var msg = nowHour + ":" + nowMin + ":" + nowSec;
+            document.getElementById("RealtimeClockArea").innerHTML = msg;
+        }
+        function ETClock() {
+            var date = new Date();
+            var a = date.getTime();
+            var ut = Math.floor(a/1000);
+
+            //エオルゼア時間1/1/1 00:00:00から経過した秒数を求める
+            et_seconds = ut * 60.0 / 175.0
+            //エオルゼア時間1/1/1 00:00:00から経過した時間を求める
+            et_hours = ut / 175.0
+            //エオルゼア時間1/1/1 00:00:00から経過した日数を求める
+            et_days = et_hours / 24.0
+            //エオルゼア時間1/1/1 00:00:00から経過した月数を求める
+            et_months = et_days / 32.0
+            //エオルゼア時間の時刻を計算する
+            et_hour = et_hours % 24.0
+            et_minute = et_seconds % 60.0
+
+            //print("%4d-%02d-%02d %02d:%02d" % (int, int(), int(), int(et_hour), int(et_minute)))
+            var result = {
+                hour:parseInt(et_hour),
+                minute:parseInt(et_minute)
+            }
+            return result
+        }
+        function showETClock() {
+                var et_time = ETClock()
+                var hour = set2fig(et_time.hour)
+                var minute = set2fig(et_time.minute)
+                var msg = hour + ":" + minute;
+                document.getElementById("ETClockArea").innerHTML = msg;
+        }
+
+        function calUpdate() {
+            result = []
+            now = ETClock()
+            start = now.hour
+
+            var contentBlock = document.getElementById('hourArea')
+
+            reflesh = false
+            refleshTime = start
+            
+            if(start != 0) {
+                reflesh = true
+            }
+
+            for(var i = start;i <= 23;i++) {
+                var new_element = document.createElement('td')
+                new_element.classList.add('hour-seg')
+                new_element.textContent = `${i}`
+                contentBlock.appendChild(new_element)
+
+                if(i == 23 && reflesh == true) {
+                    for(var j = 0;j <= start - 1;j++) {
+                        var new_element = document.createElement('td')
+                        new_element.classList.add('hour-seg')
+                        new_element.textContent = `${j}`
+                        contentBlock.appendChild(new_element)
+                    }
+                }
+            }
+        }
+        
+        function update() {
+            showETClock()
+            showClock()
+        }
+        setInterval("update()",1000)
+        calUpdate()
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        .container {
+            width:100vw;
+            height:100vh;
+        }
+        .time-area {
+            width:40%;
+        }
+        .mini-rt-area {
+            float:right;
+        }
+        .clock-area {
+            font-size:28px;
+            font-weight:bold;
+        }
+        .gantt-area {
+            display:flex;
+        }
+        .list-area {
+            width:40%;
+        }
+        .chart-area {
+            width:60%;
+        }
+        #listTable {
+            table-layout: fixed;
+            width: 20%;
+        }
+        #listTable th,td {
+            height:45px;
+        }
+        .listchart-table {
+            table-layout: fixed;
+            width: 80%;
+        }
+        .listchart-table td {
+            width:45px;
+            height:45px;
+        }
+        #hourArea {
+            padding:0px;
+        }
+        td.hour-seg {
+            padding-right:0.7rem;
+            padding-left:0.7rem;
+        }
+    </style>
+</html>
